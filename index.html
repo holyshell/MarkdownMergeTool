@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Merge Tool</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* 自定义滚动条样式 (可选) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #718096;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* 文件项拖拽时的占位符样式 */
+        .drag-placeholder {
+            background-color: #e0e7ff;
+            border: 2px dashed #a5b4fc;
+            opacity: 0.7;
+            list-style-type: none; 
+        }
+        .dark .drag-placeholder {
+            background-color: #3730a3;
+            border-color: #6366f1;
+        }
+        /* 拖拽时原始元素的样式 */
+        .dragging {
+            opacity: 0.5;
+        }
+        /* 按钮悬停效果 */
+        .btn-hover-effect {
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .btn-hover-effect:hover {
+            transform: scale(1.05);
+        }
+        /* 拖拽区域高亮 */
+        .drag-over {
+            background-color: #f0f9ff;
+            border-color: #0ea5e9;
+        }
+        .dark .drag-over {
+            background-color: #1e293b;
+            border-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen flex flex-col font-sans antialiased">
+
+    <!-- 顶部区域: 产品名称和描述 -->
+    <header class="py-8 sm:py-8 text-center shadow-md bg-white dark:bg-slate-800">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl sm:text-5xl font-bold text-indigo-600 dark:text-indigo-400">Markdown Merge</h1>
+            <p class="mt-3 text-lg sm:text-xl text-slate-600 dark:text-slate-300">合并多个 Markdown 文件并一键下载</p>
+            <!-- <p class="mt-1 text-md text-slate-500 dark:text-slate-400">支持拖拽排序，一键下载合并后的文件。</p> -->
+        </div>
+    </header>
+
+    <!-- 中部区域: 操作区域 -->
+    <main class="flex-grow container mx-auto px-4 py-8 sm:py-12">
+        <div class="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-xl max-w-3xl mx-auto">
+            <!-- 文件上传区域 -->
+            <div>
+                <label for="file-upload" class="block text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">
+                    <i class="fas fa-cloud-upload-alt mr-2 text-indigo-500 dark:text-indigo-400"></i>上传 Markdown 文件
+                </label>
+                <div id="drop-zone" class="mt-2 flex justify-center px-6 pt-8 pb-8 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-md cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-slate-600 dark:text-slate-400">
+                            <p class="pl-1">点击此处上传，或将文件拖拽到这里</p>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">仅支持 .md 文件，最多上传 <span id="max-files-display">30</span> 个</p>
+                    </div>
+                    <input id="file-upload" name="file-upload" type="file" class="sr-only" multiple accept=".md">
+                </div>
+            </div>
+
+            <!-- 已上传文件列表 -->
+            <div id="file-list-container" class="mt-6 hidden">
+                <h3 class="text-md font-medium text-slate-700 dark:text-slate-200 mb-3">已选文件 (可拖拽排序):</h3>
+                <ul id="file-list" class="space-y-2">
+                    <!-- 文件项将通过 JavaScript 添加到这里 -->
+                </ul>
+                <p id="file-count-error" class="text-sm text-red-500 mt-2 hidden">文件数量已达上限 (<span id="max-files-error-display">30</span>个)。</p>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="mt-8 text-center">
+                <button id="merge-button" type="button" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-800 btn-hover-effect disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i class="fas fa-compress-arrows-alt mr-2"></i>合并文件并下载
+                </button>
+            </div>
+        </div>
+        
+        <!-- 提示信息 -->
+        <div id="toast-container" class="fixed bottom-5 right-5 space-y-2 z-50">
+             <!-- 提示信息会在这里显示 -->
+        </div>
+    </main>
+
+    <!-- 底部区域: 二维码和作者信息 -->
+    <footer class="py-4 text-center bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto px-4">
+            <!-- <div class="flex justify-center items-center mb-4">
+                <button id="theme-toggle-light" aria-label="切换到浅色模式" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fas fa-sun text-xl"></i>
+                </button>
+                <button id="theme-toggle-dark" aria-label="切换到深色模式" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fas fa-moon text-xl"></i>
+                </button>
+                 <button id="theme-toggle-system" aria-label="跟随系统主题" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fas fa-desktop text-xl"></i>
+                </button>
+            </div> -->
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                本工具完全由 AI 驱动  &copy; <span id="current-year"></span>
+            </p>
+            <!-- 二维码 -->
+            <img src="https://tncache1-f1.v3mh.com/image/2025/04/12/9f5de5ec8b3c5910182bbf9229fb3159.jpg" alt="二维码" class="mx-auto rounded-lg shadow-md w-24 h-24 sm:w-32 sm:h-32">
+            <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">如有疑问请扫描二维码</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const fileUploadInput = document.getElementById('file-upload');
+        const dropZone = document.getElementById('drop-zone');
+        const fileListContainer = document.getElementById('file-list-container');
+        const fileListElement = document.getElementById('file-list');
+        const mergeButton = document.getElementById('merge-button');
+        const fileCountError = document.getElementById('file-count-error');
+        const toastContainer = document.getElementById('toast-container');
+        
+        // const themeToggleLight = document.getElementById('theme-toggle-light');
+        // const themeToggleDark = document.getElementById('theme-toggle-dark');
+        // const themeToggleSystem = document.getElementById('theme-toggle-system');
+
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        let uploadedFiles = []; // 存储 File 对象
+        const MAX_FILES = 30; 
+
+        document.getElementById('max-files-display').textContent = MAX_FILES;
+        document.getElementById('max-files-error-display').textContent = MAX_FILES;
+
+        // 深色/浅色模式切换逻辑
+        // const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        
+        // function applyTheme(theme) {
+        //     if (theme === "dark") {
+        //         document.documentElement.classList.add("dark");
+        //         localStorage.setItem("theme", "dark");
+        //     } else if (theme === "light") {
+        //         document.documentElement.classList.remove("dark");
+        //         localStorage.setItem("theme", "light");
+        //     } else { // system
+        //         localStorage.removeItem("theme");
+        //         if (prefersDarkScheme.matches) {
+        //             document.documentElement.classList.add("dark");
+        //         } else {
+        //             document.documentElement.classList.remove("dark");
+        //         }
+        //     }
+        // }
+
+        // 页面加载时应用主题
+        // function initializeTheme() {
+        //     const storedTheme = localStorage.getItem("theme");
+        //     if (storedTheme === "dark" || storedTheme === "light") {
+        //         applyTheme(storedTheme);
+        //     } else {
+        //         applyTheme("system");
+        //     }
+        // }
+
+        // 主题切换按钮事件
+        // themeToggleLight.addEventListener('click', () => applyTheme('light'));
+        // themeToggleDark.addEventListener('click', () => applyTheme('dark'));
+        // themeToggleSystem.addEventListener('click', () => applyTheme('system'));
+
+        // 初始化主题
+        // initializeTheme();
+
+        // 拖拽区域事件处理
+        dropZone.addEventListener('click', () => fileUploadInput.click());
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('border-indigo-500', 'dark:border-indigo-400');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-indigo-500', 'dark:border-indigo-400');
+        });
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'dark:border-indigo-400');
+            const files = event.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileUploadInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            handleFiles(files);
+            fileUploadInput.value = ''; 
+        });
+
+        // 处理文件
+        function handleFiles(files) {
+            const newFiles = Array.from(files).filter(file => file.name.endsWith('.md'));
+            
+            if (newFiles.length === 0 && files.length > 0) {
+                showToast('仅支持 .md 格式的文件。', 'error');
+                return;
+            }
+
+            if (uploadedFiles.length + newFiles.length > MAX_FILES) {
+                showToast(`最多只能上传 ${MAX_FILES} 个文件。`, 'error');
+                fileCountError.classList.remove('hidden'); 
+            }
+            
+            const filesToAdd = newFiles.slice(0, MAX_FILES - uploadedFiles.length);
+            uploadedFiles.push(...filesToAdd);
+            
+            renderFileList();
+            updateMergeButtonState();
+        }
+
+        // 渲染文件列表
+        function renderFileList() {
+            fileListElement.innerHTML = ''; 
+            if (uploadedFiles.length > 0) {
+                fileListContainer.classList.remove('hidden');
+            } else {
+                fileListContainer.classList.add('hidden');
+            }
+
+            uploadedFiles.forEach((file, index) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm cursor-move';
+                listItem.setAttribute('draggable', true);
+                listItem.dataset.index = index;
+
+                const fileInfo = document.createElement('span');
+                fileInfo.className = 'text-sm text-slate-700 dark:text-slate-200 truncate pointer-events-none'; 
+                
+                const dragIcon = document.createElement('i');
+                dragIcon.className = 'fas fa-grip-vertical mr-2 text-slate-400 dark:text-slate-500';
+                
+                const fileName = document.createElement('span');
+                fileName.textContent = file.name;
+
+                fileInfo.appendChild(dragIcon);
+                fileInfo.appendChild(fileName);
+
+                const removeButton = document.createElement('button');
+                removeButton.className = 'ml-4 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-600 transition-colors';
+                removeButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                removeButton.setAttribute('aria-label', `移除 ${file.name}`);
+                removeButton.onclick = (e) => {
+                    e.stopPropagation(); 
+                    removeFile(index);
+                };
+
+                listItem.appendChild(fileInfo);
+                listItem.appendChild(removeButton);
+                fileListElement.appendChild(listItem);
+            });
+
+            if (uploadedFiles.length >= MAX_FILES) {
+                fileCountError.classList.remove('hidden');
+            } else {
+                fileCountError.classList.add('hidden');
+            }
+            setupDragAndDrop();
+        }
+
+        // 移除文件
+        function removeFile(indexToRemove) {
+            uploadedFiles.splice(indexToRemove, 1);
+            renderFileList();
+            updateMergeButtonState();
+        }
+
+        // 更新合并按钮状态
+        function updateMergeButtonState() {
+            mergeButton.disabled = uploadedFiles.length === 0;
+        }
+
+        // 合并文件并下载
+        mergeButton.addEventListener('click', async () => {
+            if (uploadedFiles.length === 0) {
+                showToast('请先上传要合并的文件。', 'warning');
+                return;
+            }
+
+            mergeButton.disabled = true;
+            mergeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在合并...';
+
+            try {
+                const fileContents = await Promise.all(
+                    uploadedFiles.map(file => readFileContent(file))
+                );
+                
+                const mergedContent = fileContents.join('\n\n<!-- 文件分隔符 -->\n\n');
+                
+                const blob = new Blob([mergedContent], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `merged_markdown_${new Date().toISOString().slice(0,10)}.md`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('文件合并成功并已开始下载！', 'success');
+            } catch (error) {
+                console.error('合并文件时出错:', error);
+                showToast('合并文件失败，请检查控制台获取更多信息。', 'error');
+            } finally {
+                mergeButton.disabled = false; 
+                mergeButton.innerHTML = '<i class="fas fa-compress-arrows-alt mr-2"></i>合并文件并下载';
+            }
+        });
+
+        // 读取文件内容
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        // 拖拽排序逻辑 - 完全重写
+        let draggedElement = null;
+        let draggedIndex = null;
+
+        function setupDragAndDrop() {
+            const items = fileListElement.querySelectorAll('li[draggable="true"]');
+            
+            items.forEach(item => {
+                // 清除之前的事件监听器（如果有的话）
+                item.ondragstart = null;
+                item.ondragover = null;
+                item.ondragenter = null;
+                item.ondragleave = null;
+                item.ondragend = null;
+                item.ondrop = null;
+                
+                // 重新绑定事件
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.index);
+            
+            this.classList.add('dragging');
+            
+            // 设置拖拽数据
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', '');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this === draggedElement) return;
+            
+            // 获取鼠标位置相对于当前元素的位置
+            const rect = this.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                // 插入到当前元素之前
+                this.parentNode.insertBefore(draggedElement, this);
+            } else {
+                // 插入到当前元素之后
+                this.parentNode.insertBefore(draggedElement, this.nextSibling);
+            }
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            
+            // 清除所有拖拽状态
+            const items = fileListElement.querySelectorAll('li');
+            items.forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            
+            // 获取新的排序
+            const newOrder = [];
+            const currentItems = fileListElement.querySelectorAll('li');
+            currentItems.forEach(item => {
+                const index = parseInt(item.dataset.index);
+                newOrder.push(uploadedFiles[index]);
+            });
+            
+            // 更新文件数组
+            uploadedFiles = newOrder;
+            
+            // 重新渲染列表以更新索引
+            renderFileList();
+            
+            // 清除拖拽变量
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        // 显示提示信息
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            let bgColor, textColor, iconClass;
+
+            switch (type) {
+                case 'success':
+                    bgColor = 'bg-green-500 dark:bg-green-600';
+                    textColor = 'text-white';
+                    iconClass = 'fas fa-check-circle';
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-500 dark:bg-red-600';
+                    textColor = 'text-white';
+                    iconClass = 'fas fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    bgColor = 'bg-yellow-500 dark:bg-yellow-600';
+                    textColor = 'text-white';
+                    iconClass = 'fas fa-exclamation-triangle';
+                    break;
+                default: // info
+                    bgColor = 'bg-blue-500 dark:bg-blue-600';
+                    textColor = 'text-white';
+                    iconClass = 'fas fa-info-circle';
+            }
+
+            toast.className = `p-4 rounded-lg shadow-md flex items-center ${bgColor} ${textColor} transition-opacity duration-300`;
+            toast.innerHTML = `
+                <i class="${iconClass} mr-3 text-xl"></i>
+                <span>${message}</span>
+            `;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000); 
+        }
+
+        // 初始化
+        renderFileList();
+        updateMergeButtonState();
+    </script>
+</body>
+</html>
