@@ -74,7 +74,6 @@
         <div class="container mx-auto px-4">
             <h1 class="text-4xl sm:text-5xl font-bold text-indigo-600 dark:text-indigo-400">Markdown Merge</h1>
             <p class="mt-3 text-lg sm:text-xl text-slate-600 dark:text-slate-300">合并多个 Markdown 文件并一键下载</p>
-            <!-- <p class="mt-1 text-md text-slate-500 dark:text-slate-400">支持拖拽排序，一键下载合并后的文件。</p> -->
         </div>
     </header>
 
@@ -126,17 +125,6 @@
     <!-- 底部区域: 二维码和作者信息 -->
     <footer class="py-4 text-center bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
         <div class="container mx-auto px-4">
-            <!-- <div class="flex justify-center items-center mb-4">
-                <button id="theme-toggle-light" aria-label="切换到浅色模式" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-sun text-xl"></i>
-                </button>
-                <button id="theme-toggle-dark" aria-label="切换到深色模式" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-moon text-xl"></i>
-                </button>
-                 <button id="theme-toggle-system" aria-label="跟随系统主题" class="p-2 rounded-md text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-desktop text-xl"></i>
-                </button>
-            </div> -->
             <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
                 本工具完全由 AI 驱动  &copy; <span id="current-year"></span>
             </p>
@@ -155,10 +143,6 @@
         const mergeButton = document.getElementById('merge-button');
         const fileCountError = document.getElementById('file-count-error');
         const toastContainer = document.getElementById('toast-container');
-        
-        // const themeToggleLight = document.getElementById('theme-toggle-light');
-        // const themeToggleDark = document.getElementById('theme-toggle-dark');
-        // const themeToggleSystem = document.getElementById('theme-toggle-system');
 
         document.getElementById('current-year').textContent = new Date().getFullYear();
 
@@ -167,44 +151,6 @@
 
         document.getElementById('max-files-display').textContent = MAX_FILES;
         document.getElementById('max-files-error-display').textContent = MAX_FILES;
-
-        // 深色/浅色模式切换逻辑
-        // const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-        
-        // function applyTheme(theme) {
-        //     if (theme === "dark") {
-        //         document.documentElement.classList.add("dark");
-        //         localStorage.setItem("theme", "dark");
-        //     } else if (theme === "light") {
-        //         document.documentElement.classList.remove("dark");
-        //         localStorage.setItem("theme", "light");
-        //     } else { // system
-        //         localStorage.removeItem("theme");
-        //         if (prefersDarkScheme.matches) {
-        //             document.documentElement.classList.add("dark");
-        //         } else {
-        //             document.documentElement.classList.remove("dark");
-        //         }
-        //     }
-        // }
-
-        // 页面加载时应用主题
-        // function initializeTheme() {
-        //     const storedTheme = localStorage.getItem("theme");
-        //     if (storedTheme === "dark" || storedTheme === "light") {
-        //         applyTheme(storedTheme);
-        //     } else {
-        //         applyTheme("system");
-        //     }
-        // }
-
-        // 主题切换按钮事件
-        // themeToggleLight.addEventListener('click', () => applyTheme('light'));
-        // themeToggleDark.addEventListener('click', () => applyTheme('dark'));
-        // themeToggleSystem.addEventListener('click', () => applyTheme('system'));
-
-        // 初始化主题
-        // initializeTheme();
 
         // 拖拽区域事件处理
         dropZone.addEventListener('click', () => fileUploadInput.click());
@@ -357,7 +303,7 @@
             });
         }
 
-        // 拖拽排序逻辑 - 完全重写
+        // 拖拽排序逻辑
         let draggedElement = null;
         let draggedIndex = null;
 
